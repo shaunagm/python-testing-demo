@@ -176,3 +176,275 @@ Don't forget to actually move your data to a file names `images.csv`.  Or you ca
 
 We now have a site that does what we wants and can be extended to hold as many images as we want.  I think it's
 time to test it!
+
+### The Tests
+
+Before we start coding, let's take a moment to think about the type of things we want to test.
+
+Our program reads in data and then outputs it into a file.  What are some of the ways that can go wrong?  
+
++  The data it reads in could be formatted weirdly
++  The data it reads in could be partially missing
+
+There may be more potential issues, but let's limit ourselves for now to testing for these.  
+
+We're going to use Python's unittest package.  We start by creating a file which will contain our tests.
+Let's call it `test_project.py`.  We'll keep it in the top level directory we're working in.  In that file, we
+import the unittest module as well as the relevant code we're testing:
+
+    import unittest
+    from create_site import AdorableImage, mytemplate
+
+Every test we make is a class.  We make them by subclassing the base class, `unittest.TestCase`.  If you don't know
+what subclassing means, a basic way to think of it is like pizza.  A plain cheese pizza can be considered the pizza
+base class, while pepperoni pizza or green pepper pizza are subclasses that re-use the basics of pizza (bread, tomato
+sauce, cheese) and customize it further.  Your subclass can override elements of the base class, for instance a "vegan
+pizza" subclass might replace non-vegan cheese with vegan cheese.  Note that the classes and subclasses are not the actual
+pizzas you eat, but the items on the menu.  I'm getting hungry, so I'll stop with the analogy, but basically, when we
+subclass something, we extend and customize it. If you want to know more about classes and subclasses, try [Jess Hamrick's
+explanation here](http://www.jesshamrick.com/2011/05/18/an-introduction-to-classes-and-inheritance-in-python/#subclasses).
+
+We'll start by creating the shell of a test:
+
+    class MyTest(unittest.TestCase):
+
+        def test(self):
+            pass
+
+We're not actually testing anything here, but we want to make sure that unittest is actually working.  Let's
+see if it is!
+
+Type the following into the command line:
+
+    python -m unittest discover
+
+You should see an output that looks like this:
+
+    .
+    ----------------------------------------------------------------------
+    Ran 1 test in 0.000s
+
+    OK
+
+A note: the "discover" in `python -m unittest discover` tells unittest to find all testing files and cases.  
+You can also be more specific.  The following should all work:
+
+    python -m unittest test_project
+    python -m unittest test_project.MyTest
+    python -m unittest test_project.MyTest.test
+
+They all output the same thing right now because we only have one test, but after we've built out our test
+suite a bit we'll see how useful this kind of precision can be.
+
+Let's go back and customize our test case.  While we're at it, let's script to more descriptive variable names.
+Let's call our class `AdorableImageTest` and our first test `test_create_adorableimage_with_correct_data`.  (All test
+cases need to start with `test_`).  Within our first test, we create an AdorableImage object.  We can use the data from
+images.csv, or we can create our own data for the tests.  For readability's sake, I'm going to use fake test data with short names:
+
+    class AdorableImageTest(unittest.TestCase):
+
+        def test_create_adorableimage_with_correct_data(self):
+            testObject = AdorableImage(mytemplate, "images/image.jpg", "www.example.com/image_url",
+                "www.example.com/creator_url", "A Creator's Name")
+            pass
+
+When we run the unit tests again, we see they still pass, so adding the object didn't break anything.  But we're not
+actually testing anything.  Let's replace that 'pass' with an assertion.  Assertions are a method of TestCase which allow
+us to make claims about the objects we're testing.  For example, let's say we want to confirm that we've created an
+AdorableImage object.  We can add the following test:
+
+    self.assertIsInstance(testObject, AdorableImage)
+
+`assertIsInstance` takes an object and and a class and checks whether the object is of the given class.  What else might
+we want to check?  Let's see whether that object has the attribute we expect it to have.
+
+    self.assertEqual(testObject.creator_name, "A Creator's Name")
+
+What happens if we give the test the wrong data to compare it to?  Say, we tell it to look for "A Creators Name" (no
+apostrophe)?  Here's our output:
+
+    F
+    ======================================================================
+    FAIL: test_create_adorableimage_with_correct_data (test_project.AdorableImageTest)
+    ----------------------------------------------------------------------
+    Traceback (most recent call last):
+      File "test_project.py", line 10, in test_create_adorableimage_with_correct_data
+        self.assertEqual(testObject.creator_name, "A Creators Name")
+    AssertionError: "A Creator's Name" != 'A Creators Name'
+
+    ----------------------------------------------------------------------
+    Ran 1 test in 0.000s
+
+    FAILED (failures=1)
+
+The unittest suite helpfully gives us a traceback for where the test failed.  It provides us with
+very useful information via the AssertionError, which gives us the value of `testObject.creator_name`
+and points out that it does not in fact equal the string we gave it.  
+
+In addition to passing tests, represented by `.`, and failing tests, represented by `F`, there's
+a third kind of test result you might see - an error.  This happens whenever your test breaks before
+it gets to the assertion and throws an exception.  Let's elicit one of these errors by adding an extra
+parameter to our instantiation of the AdorableImage object:
+
+    testObject = AdorableImage(mytemplate, "images/image.jpg", "www.example.com/image_url",
+        "www.example.com/creator_url", "A Creator's Name", "")
+
+When we run the test, we get an error, represented by `E`, as well as a traceback:
+
+    E
+    ======================================================================
+    ERROR: test_create_adorableimage_with_correct_data (test_project.AdorableImageTest)
+    ----------------------------------------------------------------------
+    Traceback (most recent call last):
+      File "test_project.py", line 8, in test_create_adorableimage_with_correct_data
+        "www.example.com/creator_url", "A Creator's Name", "")
+    TypeError: __init__() takes exactly 6 arguments (7 given)
+
+    ----------------------------------------------------------------------
+    Ran 1 test in 0.000s
+
+    FAILED (errors=1)
+
+(Note: you may ask why it says you've passed given AdorableImage 7 arguments when you've only
+given it 6.  The first argument, self, is passed implicitly.  You can see it in the definition of
+__init__ over in `create_site.py`.)
+
+Go ahead and change your assertion back so that it passes again.  You'll note that even though we have
+two assertions, `assertIsInstance` and `assertEqual`, unittest is saying that it only ran one test.
+Each test method, such as `test_create_adorableimage_with_correct_data`, counts as a single test no
+matter how many assertions you put in it.
+
+There's no hard and fast rule for how many assertions to put into a test.  Some people say every
+assertion should have its own test.  I tend to include a few assertions in a test if they're very
+tightly linked.  Putting multiple assertions in a given test saves on code repetition.  The downside is
+that if more than one of your assertions fails, only the first of those failures will actually get tested.
+
+I'm going to leave those two assertions in our first test, but I'll make a new test to check on a different
+aspect of our object: the render method.
+
+    def test_adorableimage_renders_with_correct_data(self):
+        testObject = AdorableImage(mytemplate, "images/image.jpg", "www.example.com/image_url",
+            "www.example.com/creator_url", "A Creator's Name")
+        self.assertEqual(testObject.render(), "<img src='images/image.jpg'><p>" +
+            "<a href='www.example.com/image_url'>Image</a> by <a href='www.example.com/creator_url'>" +
+            "A Creator's Name</a>, CC BY 0.0<br>")    
+
+When you run the tests again, you should see two passing dots: `..` and the terminal should tell you it
+ran two tests.
+
+So our object seems to work when you give it the correct data, and it breaks if you give it an extra parameter.
+How can we adapt our code so it deals with an extra parameter without breaking?
+
+Let's start by creating a new test, one which will currently throw an exception:
+
+    def test_create_adorableimage_with_too_much_data(self):
+        testObject = AdorableImage(mytemplate, "images/image.jpg", "www.example.com/image_url",
+            "www.example.com/creator_url", "A Creator's Name", "Excess data", "Even more excess data!")
+        self.assertIsInstance(testObject, AdorableImage)
+
+How can we alter our code that adding a parameter doesn't break it?  One option is to add `*args` to our object
+initialization in `create_site.py`:
+
+    class AdorableImage(object):
+
+        def __init__(self, template, image_url, pixabay_image_url, pixabay_creator_url, creator_name, \*args):
+
+`\*args` captures all additional non-keyword parameters and, since we never reference it again, discards them.
+Now when we run our test suite, the third test passes.  We'll create a fourth test which checks that rendering
+still works with too much data.  That should pass too.
+
+So we can handle too many parameters.  How about too few?  Time for some new tests:
+
+    def test_create_adorableimage_with_too_little_data(self):
+        testObject = AdorableImage(mytemplate, "images/image.jpg", "www.example.com/image_url")
+        self.assertIsInstance(testObject, AdorableImage)
+
+    def test_adorableimage_renders_with_too_little_data(self):
+        testObject = AdorableImage(mytemplate, "images/image.jpg", "www.example.com/image_url")
+        self.assertEqual(testObject.render(), "<img src='images/image.jpg'><p>" +
+            "<a href='www.example.com/image_url'>Image</a> by <a href=''></a>, CC BY 0.0<br>")
+
+As expected, we get an error: `TypeError: __init__() takes at least 6 arguments (4 given)`
+
+How can we adapt our code to handle too few arguments?  Let's create some defaults for our parameters:
+
+    def __init__(self, template="", image_url="", pixabay_image_url="", pixabay_creator_url="", creator_name="", \*args):
+
+Our tests pass now!  Great!  Data?  We don't need no stinkin' data!
+
+    def test_create_adorableimage_with_no_data_whatsoever(self):
+        testObject = AdorableImage()
+        self.assertIsInstance(testObject, AdorableImage)
+
+    def test_adorableimage_renders_with_no_data_whatsoever(self):
+        testObject = AdorableImage()
+        self.assertIsInstance(testObject, AdorableImage)
+        self.assertEqual(testObject.render(), "<img src=''><p><a href=''>Image</a> by <a href=''></a>, CC BY 0.0<br>")        
+Oops:
+
+    AttributeError: 'str' object has no attribute 'render'
+
+Maybe we got carried away.  In order for our object to render, it's pretty important that we have a template, even if
+all of the data we're rendering to the template is blank.  Let's remove that default for the template parameter:
+
+    def __init__(self, template, image_url="", pixabay_image_url="", pixabay_creator_url="", creator_name="", \*args):
+
+Now our two most recent tests are failing.  But we *want* them to fail.  If we take away this test so that our whole
+suite passes, we leave ourselves open to accidentally introducing this bug again.
+
+`assertRaises` to the rescue!
+
+    def test_create_adorableimage_with_no_data_whatsoever(self):
+        with self.assertRaises(TypeError):
+            testObject = AdorableImage()
+
+The syntax here is slightly different.  To catch the exception, we put the code within a with statement.  We specify which
+exception we expect to see.  In this case, we're expecting a TypeError.
+
+Go ahead and delete the `test_adorableimage_renders_with_no_data_whatsoever` test, as there's no point in testing whether
+a non-existent object can render.
+
+One last thought, before we move on.  Is an empty string really the best default for the creator's name?  For one thing,
+there's already a default term for an unknown person that we have in English - 'anonymous'.  For another, this field is
+being used to populate the text of a link.  If we have a link but not a name, we don't want to lose the ability to access
+it.  So let's make our default for `creator_name` 'anonymous'.
+
+When we run our tests again, we see this change has induced a failure:
+
+    AssertionError: u"<img src='images/image.jpg'><p><a href='www.example.com/image_url'>Image</a> by <a href=''>Anonymous</a>, CC BY 0.0<br>" != "<img src='images/image.jpg'><p><a href='www.example.com/image_url'>Image</a> by <a href=''></a>, CC BY 0.0<br>"
+
+Whenever we see a failing test, we have to ask ourselves a question: should we adapt the code to pass the test, or
+adapt the test to fit the code?  In this particular case, we *want* the code to do what it's doing.  It's the test
+we want to bring up to date.  Go ahead and change the string we're using in `test_adorableimage_renders_with_too_little_data` so that the test passes.
+
+Our code now deals when we give AdorableImage too much or too little data.  What about when we give it the *wrong* data?
+
+    def test_create_adorableimage_with_numbers_instead_of_strings(self):
+        testObject = AdorableImage(mytemplate, 1, 2, 3, 4)
+        self.assertIsInstance(testObject, AdorableImage)
+
+    def test_adorableimage_renders_with_numbers_instead_of_stringsa(self):
+        testObject = AdorableImage(mytemplate, 1, 2, 3, 4)
+        self.assertEqual(testObject.render(), "<img src='1'><p><a href='2'>Image</a> by <a href='3'>4s</a>, CC BY 0.0<br>")
+
+It looks like Mako gracefully handles converting integers to strings.  Thanks, Mako!  What about
+if we pass in a number as the mytemplate parameter?
+
+    def test_create_adorableimage_with_mytemplate_as_a_number(self):
+        testObject = AdorableImage(99, 1, 2, 3, 4)
+        self.assertIsInstance(testObject, AdorableImage)
+
+It passes!  But... we don't want it to pass.  We want our AdorableImage to reject the very idea of
+a number as a template!  Let's alter our AdorableImage init method so that it only accepts a Mako template
+as its mytemplate parameter:
+
+    def __init__(self, template, image_url="", pixabay_image_url="", pixabay_creator_url="", creator_name="Anonymous", \*args):
+        if not template.__class__ == Template:
+            raise TypeError("First parameter (template) must be a Mako template")
+        self.template = template
+
+With this code, we check the class of the first parameter passed in to make sure that it's what we're expecting.
+If it's not, we raise a TypeError.  Now, when we run our tests, we get an expected error.  Use the syntax from
+`test_create_adorableimage_with_no_data_whatsoever` to adapt this test so a raised error causes the test to pass.
+
+There are other tests we could write, but this is just a demo, so let's move on.    

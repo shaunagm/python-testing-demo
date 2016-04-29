@@ -3,7 +3,9 @@ from mako.template import Template
 
 class AdorableImage(object):
 
-    def __init__(self, template, image_url, pixabay_image_url, pixabay_creator_url, creator_name):
+    def __init__(self, template, image_url="", pixabay_image_url="", pixabay_creator_url="", creator_name="Anonymous", *args):
+        if not template.__class__ == Template:
+            raise TypeError("First parameter (template) must be a Mako template")
         self.template = template
         self.image_url = image_url
         self.pixabay_image_url = pixabay_image_url
