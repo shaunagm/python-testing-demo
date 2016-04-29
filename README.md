@@ -67,3 +67,112 @@ can navigate to [http://0.0.0.0:8000/](http://0.0.0.0:8000/) in your browser.  I
 rest of the world hello?  Great!
 
 That means we're ready to go.
+
+## Section 1: Building a Simple One-Page Site
+
+### The Code
+
+Let's get started by creating some basic content for our website.  I am a big fan of animals,
+so I want to make this website a showcase for adorable animal pictures.  Let's update our site
+so that we can take an image and some data about said image and show it in `index.html`.
+
+Open up `create_site.py`.  We want to alter our template so instead of saying "hello world!" it shows
+our image.  To do this, we could simply give it the relevant image:
+
+    mytemplate = Template("<img src='images/guinea-pig-1.jpg'>")
+
+But that's not a method that will scale very well.  Instead, let's use Mako's variable system:
+
+    mytemplate = Template("<img src='${image_url}'>")
+
+    with open("index.html", "wb") as indexFile:
+        indexFile.write(mytemplate.render(image_url="images/guinea-pig-1.jpg"))
+
+Run `python create_site.py` again and refresh your browser.  You should see an adorable guinea pig!
+
+Let's give some credit to the person who took this picture.  I found [this image](https://pixabay.com/en/guinea-pig-smooth-hair-lemonagouti-629784/) on Pixabay, a site for openly
+licensed images.  Let's add that attribution to the site!  We'll add a variable to the template and populate
+that variable when we render it.
+
+    mytemplate = Template("<img src='${image_url}'><p>${image_attribution}</p>")
+
+    with open("index.html", "wb") as indexFile:
+        indexFile.write(mytemplate.render(image_url="images/guinea-pig-1.jpg",
+            image_attribution="Image by Pezibear, CC BY 0.0"))
+
+Let's add some links to that attribution, so people viewing the site can easily find the rest
+of Pezibear's work.  Why don't you try changing the code so that 'Image' links to the image on Pixabay
+and 'Pezibear' links to Pezibear's user page?
+
+Great!  Let's add a second image to our website.  To do this, we just need to add a second call to
+`indexFile.write(mytemplate.render())` and feed in our new data:
+
+    indexFile.write(mytemplate.render(image_url="images/cat-1.jpg",
+        pixabay_image_url="https://pixabay.com/en/kitty-cat-kitten-pet-animal-cute-551554/",
+        pixabay_creator_url="https://pixabay.com/en/users/Ty_Swartz-617282/",
+        creator_name="Ty_Swartz"))
+
+(If you're copying and pasting the above, don't forget to check that my variable names and your variable names
+match!)
+
+Re-run and re-fresh, and you should see a new image with new attribution.  It looks a little funny, because we didn't
+tell our template that the items should be separated by linebreaks.  Why don't you try to go ahead
+and fix that?  (I chose to use a `<br>` tag to do so.  Usually it's good form to control breaks and spacing using
+CSS, but we're going to avoid the complexity of adding a stylesheet.)
+
+So now we've got two images on our site!  Excellent.  But if you look at `create_site.py`, we've
+got some duplicated code.  It may be manageable now, but what if we want to show five, or fifty, or
+five hundred images?  We don't want to write that out every time!
+
+Let's make a Python object that takes a template and some data and renders it into a string:
+
+    class AdorableImage(object):
+
+        def __init__(self, template, image_url, pixabay_image_url, pixabay_creator_url, creator_name):
+            self.template = template
+            self.image_url = image_url
+            self.pixabay_image_url = pixabay_image_url
+            self.pixabay_creator_url = pixabay_creator_url
+            self.creator_name = creator_name
+
+        def render(self):
+            return self.template.render(image_url=self.image_url, pixabay_image_url=self.pixabay_image_url,
+                pixabay_creator_url=self.pixabay_creator_url, creator_name=self.creator_name)
+
+Then, we instantiate the objects using our data and the pre-defined template:
+
+    guineapigObject = AdorableImage(mytemplate, image_url="images/guinea-pig-1.jpg",
+        pixabay_image_url="https://pixabay.com/en/guinea-pig-smooth-hair-lemonagouti-629784/",
+        pixabay_creator_url="https://pixabay.com/en/users/Pezibear-526143/",
+        creator_name="Pezibear")
+
+    catObject = AdorableImage(mytemplate, image_url="images/cat-1.jpg",
+        pixabay_image_url="https://pixabay.com/en/kitty-cat-kitten-pet-animal-cute-551554/",
+        pixabay_creator_url="https://pixabay.com/en/users/Ty_Swartz-617282/",
+        creator_name="Ty_Swartz")
+
+Finally, we use the object's render method when writing out the file:
+
+    with open("index.html", "wb") as indexFile:
+        for item in [guineapigObject, catObject]:
+            indexFile.write(item.render())
+
+That should work!  "But Shauna!" you may be thinking.  "That's *more* code than we had before!"  True,
+but most of it only needs to be written once.  The real duplication happening here is when we call AdorableImage()
+multiple times to create separate objects.  Let's put the data in a separate file, comma-delimited file
+and read it in in `create_site.py`:
+
+    import csv
+
+    adorable_image_objs = []
+    with open('images.csv', 'rb') as csvfile:
+        imagereader = csv.reader(csvfile, delimiter=',', quotechar='|')
+        for row in imagereader:
+            image_obj = AdorableImage(mytemplate, row[0], row[1], row[2], row[3])
+            adorable_image_objs.append(image_obj)
+
+Don't forget to actually move your data to a file names `images.csv`.  Or you can copy and paste from
+[here]().
+
+We now have a site that does what we wants and can be extended to hold as many images as we want.  I think it's
+time to test it!
