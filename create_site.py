@@ -22,7 +22,7 @@ class AdorableImage(object):
     def get_image_page_url(self):
         return "subpages/" + self.image_url.split(".")[0] + ".html"
 
-styleTemplate = Template("<link rel='stylesheet' type='text/css' href='${path}style.css'>")
+styleTemplate = Template("<title>${title}</title><link rel='stylesheet' type='text/css' href='${path}style.css'>")
 
 adorable_image_objs = []
 with open('images.csv', 'rb') as csvfile:
@@ -32,9 +32,9 @@ with open('images.csv', 'rb') as csvfile:
         adorable_image_objs.append(image_obj)
 
 with open("index.html", "wb") as indexFile:
-    indexFile.write(styleTemplate.render(path=""))
+    indexFile.write(styleTemplate.render(path="", title="Adorable images!"))
     for item in adorable_image_objs:
         indexFile.write(item.render_thumb())
         with open(item.get_image_page_url(), "wb") as imageFile:
-            imageFile.write(styleTemplate.render(path="../"))
+            imageFile.write(styleTemplate.render(path="../", title="Adorable image " + item.image_url))
             imageFile.write(item.render())

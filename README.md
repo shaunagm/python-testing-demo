@@ -705,3 +705,159 @@ This leaves us with an assertion error in our test of interest:
 
 You may think is a troublesome assertion that requires refactoring in the code rather than the tests!  That's very
 sensible, but let's not be sensible.  We'll change our test string to "subpages/.html" and move on with our testing.
+
+### Selenium
+
+Selenium is a tool for automated web browsing.  You can use it to mimic the behavior of a person on your site.
+Selenium can work with many different languages, but we'll use [selenium-python](http://selenium-python.readthedocs.io/)
+today.
+
+We can use Selenium-python within the unittest structure, even though they're not precisely unit tests.  (Some people
+refer to Selenium as UI unit tests, but since UI frequently depends on the successfully integration of a variety of
+complicated methods, I remain uncertain of the terminology.)  Go ahead and add the following imports to `test_project`:
+
+    from selenium import webdriver
+    from selenium.webdriver.common.keys import Keys
+
+We'll create a new test class, `WebsiteUITest`.  This is a somewhat vague title, I know.  <sub>Check the timestamps on [this commit]() :(</sub>
+
+Here's our first test:
+
+    def test_title_is_correct(self):
+        driver = webdriver.Firefox()
+        driver.get("http://0.0.0.0:8000/")
+        self.assertEqual(driver.title, "Adorable images!")
+
+What's going on?  We start by creating a driver, specifying which browser we want the driver to use.  If you don't have
+Firefox, you can use one of the other drivers specified [here](http://selenium-python.readthedocs.io/api.html).  Then, we
+give the driver a URL to get.  If you've stopped SimpleHTTPServer for some reason, this will not work.  Actually, it still
+doesn't work, because our first assertion is about the title - which we've yet to specify.  
+
+Let's do that.  We'll change our styleTemplate:
+
+    styleTemplate = Template("<title>${title}</title><link rel='stylesheet' type='text/css' href='${path}style.css'>")
+
+We now need to add a title parameter when we render styleTemplate:
+
+    with open("index.html", "wb") as indexFile:
+        indexFile.write(styleTemplate.render(path="", title="Adorable images!"))
+        for item in adorable_image_objs:
+            indexFile.write(item.render_thumb())
+            with open(item.get_image_page_url(), "wb") as imageFile:
+                imageFile.write(styleTemplate.render(path="../", title="Adorable image " + item.image_url))
+                imageFile.write(item.render())
+
+(If you haven't noticed already, this is all horrifyingly bad HTML, but it renders, so we're not worrying about it.)
+
+Success!  Except... isn't it kind of annoying that the browser stays open?  Finally, it's a job for `tearDown`:
+
+    def tearDown(self):
+        self.driver.close()
+
+While we're at it, let's move the opening of the site to `setUp`:
+
+    def setUp(self):
+        self.driver = webdriver.Firefox()
+        self.driver.get("http://0.0.0.0:8000/")
+
+What else can we test?  Let's see if there are as many thumbnails as we expect on the site:
+
+    def test_number_of_thumbnails_on_image_page(self):
+        thumb_elements = self.driver.find_elements_by_class_name("thumb")
+        self.assertEqual(len(thumb_elements), 7)
+
+This passes, but it's a bit brittle.  What if we change the number of items in images.csv?  There are a
+few ways to fix this.  We could, for instance, read in `images.csv` ourselves and get the number of rows in
+the file.  Another option would be to create what's called a 'test fixture' - a set of data created for the purpose
+of testing.  This method is brittle in its own way, as you'll need to adjust the text fixtures whenever the structure
+of your production data changes.
+
+In our particular case, we would not only have to create test fixtures but serve them up for Selenium to test.  That's
+beyond the scope of this tutorial.  So let's go with the first method:
+
+    def test_number_of_thumbnails_on_image_page(self):
+        with open('images.csv', 'rb') as csvfile:
+            rows_of_data = [row for row in csv.reader(csvfile, delimiter=',')]
+        thumb_elements = self.driver.find_elements_by_class_name("thumb")
+        self.assertEqual(len(thumb_elements), len(rows_of_data))
+
+What else can we test?  Why don't we test whether clicking on the images does what we want it to do?
+
+    def test_clicking_thumbnail_opens_new_page(self):
+        element_to_click = self.driver.find_elements_by_class_name("thumb")[0]
+        element_to_click.click()
+        self.assertEqual(self.driver.title, "Adorable image guinea-pig-1.jpg")
+
+This passes, but once again we've made a brittle test.  What if the data changes so there's a new first row?
+We don't really care which animal image is first - just that we've successfully navigated to an individual page.
+We've got two options here.  First, we could change our assertion to a pair of `assertIn`:
+
+    self.assertIn("Adorable image", self.driver.title)
+    self.assertIn(".jpg", self.driver.title)
+
+(Note that the order here is important!  assertIn looks for **a** in **b** - the reverse will fail.)
+
+This is not ideal, because the first assertIn will also match the main page and the second assertIn will fail if
+we're linking to a different kind of image.
+
+Another option is to use `assertRegexpMatches`.  This uses a regular expression to match the title.  If you're not
+familiar with regular expressions, I recommend googling a tutorial.  (I have no particular one to recommend - if you do,
+let me know and I'll add it! I *do* recommend [this online regex-building tool](http://regexr.com/).)  Anyway, there's
+no need to get into details now.  This'll do:
+
+    self.assertRegexpMatches(self.driver.title, '^Adorable image[\w\d\s-]+.[\w]{1,5}')
+
+Why don't you try adding a test which clicks on the author url and sees if it goes to Pixabay?  (See my solution here[]().)
+
+There's a lot more we can do with Selenium-Python, but we'll stop there for now.  Before we move on, let's do a bit
+more refactoring.  Why, exactly, do we need to specify the Firefox webdriver for every single test?  
+
+#### setUpClass, setUp methods, and unit test order
+
+If we just put our driver definition in the first test, the remaining tests won't be able to pass.  Luckily, we have
+another option, `setUpClass` and `tearDownClass`:
+
+    @classmethod
+    def setUpClass(cls):
+        cls.driver = webdriver.Firefox()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.driver.close()
+
+What happens if we put `self.driver.get("http://0.0.0.0:8000/")` in setUpClass as well, so it only runs at the beginning
+of this set of tests?  Well, we made our tests with the assumption that we were starting from the index page.  Okay,
+we can change that.  What if we treat the tests as a walk through the site?  The only test that needs to change is
+the last one, so it assumes we start on the individual page rather than the main page:
+
+    def test_clicking_on_author_link_goes_to_author_page_on_pixabay(self):
+        # element_to_click = self.driver.find_elements_by_class_name("thumb")[0]
+        # element_to_click.click()
+        element_to_click = self.driver.find_elements_by_css_selector("a")[1]
+        author_name = element_to_click.text
+        element_to_click.click()
+        self.assertIn("Pixabay", self.driver.title)
+        self.assertIn(author_name, self.driver.title)
+
+*Aaaaaaaah!*  I got three failures and an error from that!  What happened?
+
+Unittests are **not** ordered by what comes first in the suite.  Instead, the default is to order them using the
+[`cmp`](https://docs.python.org/2/library/functions.html#cmp) function which basically does an alphanumerical sort (like alphabetical but with numbers, too).  It's considered good practice to make keep unit tests separate from each other, so that they don't depend on state from test to test.  There _are_ ways around this, including naming your tests in
+alphabetical order, but for the most part, it's worth the effort to keep your tests isolated.
+
+#### Speeding things up
+
+Your tests should all be passing, but they may not pass quickly.  Using the browser slows things down -
+my test runs are averaging around 12 seconds.  Why sit through all that when we're not looking at the Selenium
+part of the test suite, or are only looking at once of the Selenium-based tests?
+
+Remember the notation for running subsets of tests?  Let's try it again now:
+
+    python -m unittest test_project.AdorableImageTest
+    python -m unittest test_project.WebsiteUITest.test_number_of_thumbnails_on_image_page
+
+## That's all for now!
+
+We're all done!  I hope you enjoyed the tutorial.  In the future I plan to add brief sections on fixtures and factories,
+mocks, and test driven development.  If you'd like to contribute, or want to fix an error, feel free to open an issue
+in [the issue tracker]().
