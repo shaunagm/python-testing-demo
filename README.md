@@ -633,3 +633,75 @@ is being referenced from multiple places in the directory structure, we'll need 
 the file. I'll let you figure out how to do that (but if you're stuck, see my solution [here]()).
 
 We're ready to get testing!
+
+## The Tests
+
+Before we move on to using Selenium, let's take a moment to check in on our existing tests.  They'll probably all
+pass just fine, right?
+
+We can't even run the file:
+
+    ImportError: cannot import name mytemplate
+
+Because we renamed our templates, we can no longer import them into our test file.  What happens when we try to import
+thumbTemplate and imageTemplate instead?
+
+
+    ImportError: cannot import name thumbTemplate
+
+We've moved thumbTemplate and imageTemplate inside of our AdorableImage object definition.  On the down side, that means
+we can't import them directly.  On the up side, they come prepackaged with the AdorableImage object, so we don't have
+to import them at all.  Let's delete any reference to templates in our imports, as well as in our AdorableImage object
+instantiation.
+
+When we do this, we still get six failing tests.  If you scroll threw, you can see that four of them are issues with the
+rendered template.  That makes sense, because we edited the template used in `render`.  Specifically, we added a relative
+path to the image url.  Go in and add this to your tests.  Once you've done this, there should be two failures left, both
+saying:
+
+    AssertionError: TypeError not raised
+
+We no longer pass in our templates when we create our AdorableImage object, so passing in a number instead of a template
+object, or nothing at all, no longer raises a TypeError.  We can delete these two tests entirely.
+
+We could add some tests for the `render_thumb` method, and someone aiming for completeness might, but I'm about to show
+you another way to test that everything's rendering successfully.  Instead, let's just add a test for
+`get_image_page_url()`:
+
+    def test_get_image_page_url_with_correct_data(self):
+        self.assertEqual(self.correctTestObject.get_image_page_url(), "subpages/image.html")
+
+We can also easily check what happens with missing data:
+
+    def test_get_image_page_url_with_missing_data(self):
+        self.assertEqual(self.missingDataTestObject.get_image_page_url(), "subpages/image.html")
+
+That passes too, so we're good, right?  Well, no: because the definition of self.missingDataTestObject is all the way
+up in `setUp` it's easy to miss that `self.image_url` is not in fact missing.  What if we change the definition of the
+object to use keyword parameters, and make sure that a value for image_url is not passed in?
+
+    self.missingDataTestObject = AdorableImage(pixabay_image_url="www.example.com/image_url", creator_name="A Creator's       Name")
+
+This introduces an error with the rendering of `test_adorableimage_renders_with_too_little_data` which we can fix easily.
+That leaves the error we were trying to induce:
+
+    IndexError: list index out of range
+
+Our method expects an image_url of very precise form.  `self.image_url.split("/")[1].split(".")[0]` requires that there
+be a / in the string so that split returns an array of at least length two.  The second split is not quite as
+troublesome, since a split that finds no character of interest returns the original string in an array of length one.
+
+There are a number of ways to solve this dilemma.  Probably the most elegant option is to move the reference to the
+images folder to the template.  We need to change the following:
+
++  The template generation in `render` and `render_thumb`
++  The references to the image directory from the first column in images.csv
++  How we create two of our test objects in `setUp`
++  `test_adorableimage_renders_with_numbers_instead_of_strings` and `test_adorableimage_renders_with_too_little_data` need minor edits
+
+This leaves us with an assertion error in our test of interest:
+
+    AssertionError: 'subpages/.html' != 'subpages/image.html'
+
+You may think is a troublesome assertion that requires refactoring in the code rather than the tests!  That's very
+sensible, but let's not be sensible.  We'll change our test string to "subpages/.html" and move on with our testing.

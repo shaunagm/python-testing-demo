@@ -10,17 +10,17 @@ class AdorableImage(object):
         self.creator_name = creator_name
 
     def render(self):
-        imageTemplate = Template("<img src='../${image_url}'><p><a href='${pixabay_image_url}'>" +
+        imageTemplate = Template("<img src='../images/${image_url}'><p><a href='${pixabay_image_url}'>" +
             "Image</a> by <a href='${pixabay_creator_url}'>${creator_name}</a>, CC0 Public Domain<br>")
         return imageTemplate.render(image_url=self.image_url, pixabay_image_url=self.pixabay_image_url,
             pixabay_creator_url=self.pixabay_creator_url, creator_name=self.creator_name)
 
     def render_thumb(self):
-        thumbTemplate = Template("<a href='${page_url}'><img class='thumb' src='${image_url}'></a>")
+        thumbTemplate = Template("<a href='${page_url}'><img class='thumb' src='images/${image_url}'></a>")
         return thumbTemplate.render(image_url=self.image_url, page_url=self.get_image_page_url())
 
     def get_image_page_url(self):
-        return "subpages/" + self.image_url.split("/")[1].split(".")[0] + ".html"
+        return "subpages/" + self.image_url.split(".")[0] + ".html"
 
 styleTemplate = Template("<link rel='stylesheet' type='text/css' href='${path}style.css'>")
 
