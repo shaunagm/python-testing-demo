@@ -18,14 +18,10 @@ the website appears the way we want it to.
 Everything you need to know about templating in general and Mako specifically will be explained as
 we go along.  Similarly, you do not need any sort of prior experience with Python unittests or with
 Selenium.  You *do* need a basic knowledge of programming and Python.  If there are elements of the
-tutorial that you find confusing, please feel free to open up an issue in the issue tracker and I
+tutorial that you find confusing, please feel free to open up an issue in [the issue tracker](https://github.com/shaunagm/python-testing-demo/issues) and I
 will respond with clarification.  I will also incorporate those explanations into the tutorial as needed.
 
 Let's get started!
-
-### Why testing?
-
-^^Insert meditation on the value of testing here^^
 
 ### Setting up
 
@@ -860,4 +856,4 @@ Remember the notation for running subsets of tests?  Let's try it again now:
 
 We're all done!  I hope you enjoyed the tutorial.  In the future I plan to add brief sections on fixtures and factories,
 mocks, and test driven development.  If you'd like to contribute, or want to fix an error, feel free to open an issue
-in [the issue tracker]().
+in [the issue tracker](https://github.com/shaunagm/python-testing-demo/issues).
