@@ -3,3 +3,4 @@ py-demo-env/
 *.pyc
 htmlcov
 .coverage
+subpages

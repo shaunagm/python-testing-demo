@@ -481,7 +481,7 @@ Meanwhile, there are only assertions in our test cases.
 
 We have no plausible use for `tearDown` right now, so will skip demo-ing that and come back to it in a later section.
 
-#### test coverage
+#### Test coverage
 
 Finally, let's check our test coverage.  [Coverage](https://coverage.readthedocs.io/en/coverage-4.0.3/index.html) is a
 tool which profiles your code and your tests and tells you what percentage of your code is covered, in units of
@@ -514,3 +514,122 @@ Again, this more useful as a helpful guide than as a hard-and-fast metric to fol
 tool.
 
 Let's move on to section 2!
+
+## Section 2: Extending the Site to Multiple Pages
+
+### The Code
+
+I've gone ahead and added a few more images to our image folder and their corresponding data to images.csv.  You can
+rerun `python create_site.py` to regenerate the site.  
+
+Cute, huh?  But the site itself is not very cute.  How can we make these images more enjoyable to browse through?
+
+Let's make our main page a series of thumbnails, all of the same size.  To do this, we'll want to finally create that
+CSS file so we don't clutter up our template with styling.  We'll create a file called `style.css` and add the following:
+
+    .thumb {
+      height: 200px;
+    }
+
+Not familiar with CSS?  Basically, this notation says to find all HTML elements with class thumb and give them a height
+of 200 pixels.  Width will be automatically resized proportionally.  The `.` means to search by class, while `#`
+searches by ID.  Basic HTML elements like body or p are referred to bare, for instance:
+
+    body {
+      background-color: #e6e6e6;
+    }
+
+Let's make the background silver-gray while we're at it!
+
+We need to write a reference to this stylesheet into our document.  Let's make a new template for that, `styleTemplate`.
+While we're at it, let's rename our old template something more useful like `imageTemplate`.  And we'll want a separate
+template for the fullsize and thumbnail versions of our images.  Let's call the latter `thumbTemplate`.
+
+Our new templates look like this:
+
+    imageTemplate = Template("<img src='${image_url}'><p><a href='${pixabay_image_url}'>" +
+        "Image</a> by <a href='${pixabay_creator_url}'>${creator_name}</a>, CC0 Public Domain<br>")
+
+    styleTemplate = Template("<link rel='stylesheet' type='text/css' href='style.css'>")
+
+    thumbTemplate = Template("<img class='thumb' src='${image_url}'>")
+
+How shall we render them?  First, let's create a new render method on our AdorableImage object so we can choose
+which template to render the data to:
+
+    def render_thumb(self):
+        return self.template.render(image_url=self.image_url)     
+
+Now, when we write out out file, we call render_thumb instead of render - at least, for the index page.  We also
+render the styleTemplate just once:
+
+    with open("index.html", "wb") as indexFile:
+        indexFile.write(styleTemplate.render())
+        for item in adorable_image_objs:
+            indexFile.write(item.render_thumb())
+
+Did you get an error?  Can you tell why?
+
+When we create our AdorableImage object, we create it with what we're now calling imageTemplate.  `render_thumb()` is
+using self.template, which is imageTemplate, rather than thumbTemplate.  We can fix this by also passing in thumbTemplate.
+Or, we can decide not to pass in the templates, but instead define them as part of the object.  The latter seems
+more elegant to me.  
+
+I've moved the templates into the render methods:
+
+    def render(self):
+        imageTemplate = Template("<img src='${image_url}'><p><a href='${pixabay_image_url}'>" +
+            "Image</a> by <a href='${pixabay_creator_url}'>${creator_name}</a>, CC0 Public Domain<br>")
+        return imageTemplate.render(image_url=self.image_url, pixabay_image_url=self.pixabay_image_url,
+            pixabay_creator_url=self.pixabay_creator_url, creator_name=self.creator_name)
+
+    def render_thumb(self):
+        thumbTemplate = Template("<img class='thumb' src='${image_url}'>")
+        return thumbTemplate.render(image_url=self.image_url)
+
+We can now delete references to the templates from the \__init__ method of AdorableImage as well as from the
+statement where we instantiate AdorableImage objects.  
+
+You should now be able to regenerate the page.  Success!  We have all the thumbnail images visible on the screen,
+as well as a nice gray background.  
+
+But we still want to be able to access all of the data about each object, as well as the larger version.  So let's
+create a page for each full size image.  We'll do this by adding to where we are already looping through the
+images:
+
+    with open("index.html", "wb") as indexFile:
+        indexFile.write(styleTemplate.render())
+        for item in adorable_image_objs:
+            indexFile.write(item.render_thumb())
+            with open(item.get_image_page_url(), "wb") as imageFile:
+                imageFile.write(item.render())
+
+A few things of note here.  First, we call `render_thumb()` in the main loop, which prints to the index file,
+and `render()` in the subloop, which prints to individual page.  Second, we've introduced a new method,
+`get_image_page_url()`:
+
+    def get_image_page_url(self):
+        return "subpages/" + self.image_url.split("/")[1].split(".")[0] + ".html"
+
+This is declared on AdorableImage and using a bit of Python string parsing to create a reasonable filename
+from the name of the original image.  We can use this method within `render_thumb()` to create a link to the individual
+file from the main page:
+
+    def render_thumb(self):
+        thumbTemplate = Template("<a href='${page_url}'><img class='thumb' src='${image_url}'></a>")
+        return thumbTemplate.render(image_url=self.image_url, page_url=self.get_image_page_url())
+
+You should now be able to click on the link and be brought to a new page.  Unfortunately, this page has a few problems.
+For one, the image link is now broken.  Do you know why?
+
+Because this page is in a subdirectory, our relative path to the image is not correct.  We can fix that by adding `../`
+to our imageTemplate:
+
+    imageTemplate = Template("<img src='../${image_url}'><p><a href='${pixabay_image_url}'>" +
+        "Image</a> by <a href='${pixabay_creator_url}'>${creator_name}</a>, CC0 Public Domain<br>")
+
+We're also missing our grey background.  Let's add that to all of our individual image pages.  Because the same file
+is being referenced from multiple places in the directory structure, we'll need a way to pass in the relative path to
+the file. I'll let you figure out how to do that (but if you're stuck, see my solution [here]()).
+
+We're ready to get testing!
