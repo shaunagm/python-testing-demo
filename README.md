@@ -4,16 +4,10 @@ This repository contains a demo/tutorial for learning how to test in Python.  It
 for an [introduction to testing event](https://www.eventbrite.com/e/learn-testing-with-python-tickets-24365642292)
 I ran for [PyLadies remote](http://remote.pyladies.com/).
 
-You can follow along with the tutorial by reading through the README below.  Each section has
-a corresponding branch in this repository.  You may be able to follow along with the
-tutorial without checking out any additional branches but if you want to skip a section,
-check your code against my code, etc., you can switch to the appropriate branch in git.  Anytime
-the tutorial gets to a new section, you will be linked to the corresponding branch to check out.
-
-In this tutorial, we will be generating a very simple website using Mako templates.  We will
-first cover Python unit testing as we write the code that processes the data for the website.
-Then, we'll cover integration testing (well, a form of it!) by using Selenium-Python to test that
-the website appears the way we want it to.
+You can follow along with the tutorial by reading through the README below.  In this tutorial,
+we will be generating a very simple website using Mako templates.  We will first cover Python unit
+testing as we write the code that processes the data for the website. Then, we'll cover integration
+testing (well, a form of it!) by using Selenium-Python to test that the website appears the way we want it to.
 
 Everything you need to know about templating in general and Mako specifically will be explained as
 we go along.  Similarly, you do not need any sort of prior experience with Python unittests or with
@@ -36,10 +30,6 @@ only run the last line in this code block:
     virtualenv py-demo-env
     source py-demo-env/bin/activate
     pip install -r requirements.txt
-
-Finally, check out the very first branch of this tutorial:
-
-    ^^Insert branch here^^
 
 Let's make sure that everything is working by generating our website, which should be
 very simple at this point.  Type the following into your command line:
