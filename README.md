@@ -9,6 +9,9 @@ we will be generating a very simple website using Mako templates.  We will first
 testing as we write the code that processes the data for the website. Then, we'll cover integration
 testing (well, a form of it!) by using Selenium-Python to test that the website appears the way we want it to.
 
+(The master branch has been cleaned out so you can start from scratch, but you can see the completed set of
+code & tests [here](https://github.com/shaunagm/python-testing-demo/tree/b101c2a5a3f34b3077344b4bbb3330bbe382cb84).)
+
 Everything you need to know about templating in general and Mako specifically will be explained as
 we go along.  Similarly, you do not need any sort of prior experience with Python unittests or with
 Selenium.  You *do* need a basic knowledge of programming and Python.  If there are elements of the
@@ -158,7 +161,7 @@ and read it in in `create_site.py`:
             adorable_image_objs.append(image_obj)
 
 Don't forget to actually move your data to a file names `images.csv`.  Or you can copy and paste from
-[here]().
+[here](https://github.com/shaunagm/python-testing-demo/blob/092395a30ffa0ed8e7c9825895974f3f3b96419d/images.csv).
 
 We now have a site that does what we wants and can be extended to hold as many images as we want.  I think it's
 time to test it!
@@ -616,7 +619,7 @@ to our imageTemplate:
 
 We're also missing our grey background.  Let's add that to all of our individual image pages.  Because the same file
 is being referenced from multiple places in the directory structure, we'll need a way to pass in the relative path to
-the file. I'll let you figure out how to do that (but if you're stuck, see my solution [here]()).
+the file. I'll let you figure out how to do that (but if you're stuck, see my solution [here](https://github.com/shaunagm/python-testing-demo/blob/092395a30ffa0ed8e7c9825895974f3f3b96419d/create_site.py#L34)).
 
 We're ready to get testing!
 
@@ -705,7 +708,7 @@ complicated methods, I remain uncertain of the terminology.)  Go ahead and add t
     from selenium import webdriver
     from selenium.webdriver.common.keys import Keys
 
-We'll create a new test class, `WebsiteUITest`.  This is a somewhat vague title, I know.  <sub>Check the timestamps on [this commit]() :(</sub>
+We'll create a new test class, `WebsiteUITest`.  This is a somewhat vague title, I know.  <sub>Check the timestamps on [this commit](https://github.com/shaunagm/python-testing-demo/commit/ff7f84578708097528f0811f7e18cec05864c7c3) :(</sub>
 
 Here's our first test:
 
@@ -793,7 +796,7 @@ no need to get into details now.  This'll do:
 
     self.assertRegexpMatches(self.driver.title, '^Adorable image[\w\d\s-]+.[\w]{1,5}')
 
-Why don't you try adding a test which clicks on the author url and sees if it goes to Pixabay?  (See my solution here[]().)
+Why don't you try adding a test which clicks on the author url and sees if it goes to Pixabay?  (See my solution [here](https://github.com/shaunagm/python-testing-demo/blob/ff7f84578708097528f0811f7e18cec05864c7c3/test_project.py#L78).)
 
 There's a lot more we can do with Selenium-Python, but we'll stop there for now.  Before we move on, let's do a bit
 more refactoring.  Why, exactly, do we need to specify the Firefox webdriver for every single test?  
