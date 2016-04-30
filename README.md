@@ -204,6 +204,8 @@ pizzas you eat, but the items on the menu.  I'm getting hungry, so I'll stop wit
 subclass something, we extend and customize it. If you want to know more about classes and subclasses, try [Jess Hamrick's
 explanation here](http://www.jesshamrick.com/2011/05/18/an-introduction-to-classes-and-inheritance-in-python/#subclasses).
 
+#### Defining and running tests
+
 We'll start by creating the shell of a test:
 
     class MyTest(unittest.TestCase):
@@ -248,10 +250,12 @@ images.csv, or we can create our own data for the tests.  For readability's sake
                 "www.example.com/creator_url", "A Creator's Name")
             pass
 
+#### Assertions
+
 When we run the unit tests again, we see they still pass, so adding the object didn't break anything.  But we're not
-actually testing anything.  Let's replace that 'pass' with an assertion.  Assertions are a method of TestCase which allow
-us to make claims about the objects we're testing.  For example, let's say we want to confirm that we've created an
-AdorableImage object.  We can add the following test:
+actually testing anything.  Let's replace that 'pass' with an assertion.   Assertions are a method of TestCase which
+allow us to make claims about the objects we're testing.  For example, let's say we want to confirm that we've created
+an AdorableImage object.  We can add the following test:
 
     self.assertIsInstance(testObject, AdorableImage)
 
@@ -307,7 +311,7 @@ When we run the test, we get an error, represented by `E`, as well as a tracebac
 
 (Note: you may ask why it says you've passed given AdorableImage 7 arguments when you've only
 given it 6.  The first argument, self, is passed implicitly.  You can see it in the definition of
-__init__ over in `create_site.py`.)
+the \__init__ method over in `create_site.py`.)
 
 Go ahead and change your assertion back so that it passes again.  You'll note that even though we have
 two assertions, `assertIsInstance` and `assertEqual`, unittest is saying that it only ran one test.
@@ -334,6 +338,8 @@ ran two tests.
 
 So our object seems to work when you give it the correct data, and it breaks if you give it an extra parameter.
 How can we adapt our code so it deals with an extra parameter without breaking?
+
+#### Adapting code to pass tests
 
 Let's start by creating a new test, one which will currently throw an exception:
 
@@ -448,3 +454,63 @@ If it's not, we raise a TypeError.  Now, when we run our tests, we get an expect
 `test_create_adorableimage_with_no_data_whatsoever` to adapt this test so a raised error causes the test to pass.
 
 There are other tests we could write, but this is just a demo, so let's move on.    
+
+#### setUp and tearDown
+
+Before we finish with this section, let's refactor our tests a little bit.  There's a fair bit of repetition from
+test to test.  For instance, we create the same AdorableImage objects multiple times.  Let's put move that process to
+the `setUp` method.
+
+`setUp` and `tearDown` are special methods which get run before and after every test, respectively.  This can be useful
+for DRYing up code.  It may not seem terribly necessary for our test cases - in fact, one could argue that it isn't worth
+the readability hit to even create a setUp class here - but it can be *very* useful in other situations.  For instance,
+if we needed to create test databases or create multiple objects at once, `setUp` and `tearDown` would be essential.
+
+Let's go ahead and refactor our tests, even if it's of dubious utility right now. When we've moved all object creation to setUp, it looks like this:
+
+    def setUp(self):
+        self.correctTestObject = AdorableImage(mytemplate, "images/image.jpg", "www.example.com/image_url",
+            "www.example.com/creator_url", "A Creator's Name")
+        self.excessDataTestObject = AdorableImage(mytemplate, "images/image.jpg", "www.example.com/image_url",
+            "www.example.com/creator_url", "A Creator's Name", "Excess data", "Even more excess data!")
+        self.missingDataTestObject = AdorableImage(mytemplate, "images/image.jpg", "www.example.com/image_url")
+        self.numberTestObject = AdorableImage(mytemplate, 1, 2, 3, 4)
+        self.numberTestObjectWithTemplate = AdorableImage(mytemplate, 1, 2, 3, 4)
+
+Meanwhile, there are only assertions in our test cases.
+
+We have no plausible use for `tearDown` right now, so will skip demo-ing that and come back to it in a later section.
+
+#### test coverage
+
+Finally, let's check our test coverage.  [Coverage](https://coverage.readthedocs.io/en/coverage-4.0.3/index.html) is a
+tool which profiles your code and your tests and tells you what percentage of your code is covered, in units of
+[statements](https://docs.python.org/2/reference/simple_stmts.html).  Type the following:
+
+    coverage run create_site.py
+
+You can see the results on the command line by typing:
+
+    coverage report create_site.py
+
+When I do that, I see:
+
+    Name             Stmts   Miss  Cover
+    ------------------------------------
+    create_site.py      23      1    96%
+
+This gives me a general sense of how much of my code is covered by tests.  This is only useful as a ballpark, though,
+as just because there is a test which relates to a given statement doesn't mean the tests adequately cover all the
+ways in which that statement might be used.
+
+You can get a more detailed report with the following:
+
+    coverage html create_site.py
+
+Open up `htmlcov/index.html` in your browser and click on the link to create_site.py.  There, you can see
+which statements were run, missing or excluded.  
+
+Again, this more useful as a helpful guide than as a hard-and-fast metric to follow.  Still, it's a nifty
+tool.
+
+Let's move on to section 2!
