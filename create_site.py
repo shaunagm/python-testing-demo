@@ -17,7 +17,7 @@ class AdorableImage(object):
             pixabay_creator_url=self.pixabay_creator_url, creator_name=self.creator_name)
 
 mytemplate = Template("<img src='${image_url}'><p><a href='${pixabay_image_url}'>" +
-    "Image</a> by <a href='${pixabay_creator_url}'>${creator_name}</a>, CC BY 0.0<br>")
+    "Image</a> by <a href='${pixabay_creator_url}'>${creator_name}</a>, CC0 Public Domain<br>")
 
 adorable_image_objs = []
 with open('images.csv', 'rb') as csvfile:
